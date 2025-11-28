@@ -253,7 +253,7 @@ const Game = () => {
         newScore -= 20;
         setSpiesIn(s => s + 1);
         newSpiesIn += 1;
-        if (!newFeedback) newFeedback = '糟糕！放入了間諜！(隱藏風險)';
+        if (!newFeedback) newFeedback = '糟糕！放入了間諜！';
         anim = 'dead';
       } else if (currentApplicant.type === 'resource_heavy') {
         newResources -= 15;
@@ -324,7 +324,7 @@ const Game = () => {
         </div>
         {isFull && (
           <div className="absolute top-1 right-1 bg-red-600 text-white text-xs px-2 py-1 rounded-full animate-pulse z-10 flex items-center gap-1 shadow-sm">
-            <AlertCircle size={10} /> 滿載！
+            <AlertCircle size={10} /> 好多人 QQ
           </div>
         )}
         
@@ -440,22 +440,22 @@ const Game = () => {
       <div className="bg-white p-5 rounded-xl border-b-4 border-r-4 border-slate-800 text-left max-w-md shadow-xl shrink-0">
         <h1 className="text-2xl font-black mb-2 text-slate-900">移民官：守護家園</h1>
         <p className="text-slate-600 mb-4 text-sm">
-          我是資深移民官。現在有兩個選擇，決定台灣的未來：
+          你是資深移民官。現在有兩個選擇，決定台灣的未來：
         </p>
         <div className="grid gap-3">
           <button onClick={() => startGame('6yr')} className="p-3 bg-blue-100 border-2 border-blue-800 rounded-lg flex items-center gap-3 active:scale-95 transition-transform text-left">
             <div className="bg-blue-600 text-white p-2 rounded"><Clock size={20}/></div>
             <div>
-              <div className="font-bold text-blue-900">現行 6 年制</div>
-              <div className="text-xs text-blue-700">有充裕時間進行深度調查，能揭穿間諜的偽裝。</div>
+              <div className="font-bold text-blue-900">6 年申請制</div>
+              <div className="text-xs text-blue-700"></div>
             </div>
           </button>
           
           <button onClick={() => startGame('4yr')} className="p-3 bg-red-100 border-2 border-red-800 rounded-lg flex items-center gap-3 active:scale-95 transition-transform text-left">
             <div className="bg-red-600 text-white p-2 rounded"><Zap size={20}/></div>
             <div>
-              <div className="font-bold text-red-900">挑戰 4 年制</div>
-              <div className="text-xs text-red-700">時間減半！調查來不及完成！文字陷阱極多！</div>
+              <div className="font-bold text-red-900"> 4 年申請制</div>
+              <div className="text-xs text-red-700"></div>
             </div>
           </button>
         </div>
