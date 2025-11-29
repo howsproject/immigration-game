@@ -657,11 +657,17 @@ const Game = () => {
     nextApplicant(selectedMode);
   };
 
+  // 1. Timer Tick Only (Independent of processedCount)
   useEffect(() => {
     if (phase === 'game' && timeLeft > 0) {
       const timer = setInterval(() => setTimeLeft(t => t - 1), 1000);
       return () => clearInterval(timer);
-    } else if (timeLeft === 0 && phase === 'game') {
+    }
+  }, [phase, timeLeft]); // REMOVED processedCount
+
+  // 2. Game Over Check
+  useEffect(() => {
+    if (phase === 'game' && timeLeft === 0) {
       if (processedCount < 5) {
         setGameOverReason("行政效率過低：因處理案件過少，被判定不適任而免職。");
       }
@@ -671,7 +677,7 @@ const Game = () => {
       setIsRushing(false);
       if (rushTimerRef.current) clearTimeout(rushTimerRef.current);
     }
-  }, [timeLeft, phase, processedCount]);
+  }, [phase, timeLeft, processedCount]); // Keeping it here is fine for game over check
 
   useEffect(() => {
     return () => {

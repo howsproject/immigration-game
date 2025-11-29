@@ -1,7 +1,7 @@
 {
   "name": "移民官：守護家園",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "homepage": "https://howsproject.github.io/immigration-game",
   "scripts": {
