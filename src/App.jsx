@@ -1,19 +1,35 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Shield, Activity, Clock, X, Check, Zap, ChevronRight, AlertCircle, RotateCcw, Search, AlertTriangle } from 'lucide-react';
+import { Shield, Activity, Clock, X, Check, Zap, ChevronRight, AlertCircle, RotateCcw, Search, AlertTriangle, TrendingUp, MessageSquare } from 'lucide-react';
 
 // --- Anime Character Component (Visuals) ---
-const AnimeCivilServant = ({ mood }) => {
+const AnimeCivilServant = ({ mood, speak }) => {
   const getExpression = () => {
     switch(mood) {
       case 'panic': return 'O_O';
       case 'angry': return '><';
       case 'dead': return '-_-';
+      case 'rush': return '><'; 
       default: return '=_=';
     }
   };
 
   return (
     <div className="relative w-48 h-64 md:w-64 md:h-80 transition-all duration-300 pointer-events-none">
+      {/* Speech Bubble for Rushing - UPDATED: Top adjusted to chest level */}
+      {speak && (
+        <div 
+          className="absolute top-28 left-1/2 -translate-x-1/2 w-48 bg-white/95 border-4 border-red-800 rounded-2xl p-3 shadow-xl z-50 animate-bounce"
+          style={{ animationDuration: '0.3s' }}
+        >
+          {/* Arrow pointing UP towards mouth */}
+          <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-b-[10px] border-b-red-800"></div>
+          
+          <div className="text-red-900 font-black text-center text-lg leading-tight">
+            {speak}
+          </div>
+        </div>
+      )}
+
       {/* Body/Suit */}
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-40 h-40 bg-slate-800 rounded-t-3xl shadow-lg">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 bg-white skew-x-6 opacity-10"></div>
@@ -28,6 +44,19 @@ const AnimeCivilServant = ({ mood }) => {
         <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-36 h-20 bg-slate-900 rounded-t-full"></div>
         <div className="absolute top-0 -left-2 w-10 h-20 bg-slate-900 rotate-45 rounded-full"></div>
         <div className="absolute top-0 -right-2 w-10 h-20 bg-slate-900 -rotate-45 rounded-full"></div>
+        
+        {/* Sweat drops when Panicking (removed from rush) */}
+        {mood === 'panic' && (
+           <div className="absolute top-4 -right-4 text-blue-400 text-3xl animate-pulse">💦</div>
+        )}
+
+        {/* Angry Vein when Angry OR Rushing */}
+        {(mood === 'angry' || mood === 'rush') && (
+          <div className="absolute top-2 right-4 text-red-600 text-3xl font-black animate-pulse" style={{ animationDuration: '0.2s' }}>
+            💢
+          </div>
+        )}
+
         <div className="flex gap-2 mt-4 relative z-20">
           <div className="w-10 h-8 border-2 border-slate-800 bg-white/30 rounded backdrop-blur-sm"></div>
           <div className="w-1 bg-slate-800 mt-4"></div>
@@ -39,14 +68,13 @@ const AnimeCivilServant = ({ mood }) => {
                <div className="w-2 h-2 bg-black rounded-full animate-ping"></div>
                <div className="w-2 h-2 bg-black rounded-full animate-ping"></div>
              </>
-           ) : mood === 'angry' ? (
+           ) : (mood === 'angry' || mood === 'rush') ? (
              <span className="tracking-widest font-mono text-xl">＞ ＜</span>
            ) : (
              <span className="tracking-widest font-mono text-xl">{getExpression() === '-_-' ? '— —' : '━ ━'}</span>
            )}
         </div>
         {mood === 'panic' && <div className="absolute top-4 right-2 text-blue-400 text-2xl animate-bounce">💧</div>}
-        {mood === 'angry' && <div className="absolute top-2 right-4 text-red-500 text-2xl font-bold animate-pulse">💢</div>}
       </div>
     </div>
   );
@@ -132,14 +160,19 @@ const Game = () => {
   const [isResultInteractive, setIsResultInteractive] = useState(false);
   const [gameOverReason, setGameOverReason] = useState(null);
 
+  // --- Inactivity Pressure State ---
+  const [isRushing, setIsRushing] = useState(false);
+  const [rushText, setRushText] = useState("");
+  const rushTimerRef = useRef(null);
+
   const feedbackTimerRef = useRef(null);
   const [processedCount, setProcessedCount] = useState(0);
   const [spiesIn, setSpiesIn] = useState(0);
   const [localsDisplaced, setLocalsDisplaced] = useState(0);
 
-  // --- Dynamic Mood Logic ---
   const getDynamicMood = () => {
     if (animState !== 'normal') return animState;
+    if (isRushing) return 'rush'; // Priority mood for rushing
     if (score <= 20) return 'dead'; 
     if (resources <= 20) return 'angry';
     if (score <= 50 || resources <= 50) return 'panic';
@@ -150,7 +183,9 @@ const Game = () => {
     setPhase('menu');
     setFeedback(null);
     setGameOverReason(null);
+    setIsRushing(false);
     if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+    if (rushTimerRef.current) clearTimeout(rushTimerRef.current);
   };
 
   const startGame = (selectedMode) => {
@@ -167,11 +202,26 @@ const Game = () => {
     setFeedback(null);
     setGameOverReason(null);
     setIsResultInteractive(false);
+    setIsRushing(false); 
     if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
     nextApplicant(selectedMode);
   };
 
+  const startRushTimer = () => {
+    if (rushTimerRef.current) clearTimeout(rushTimerRef.current);
+    setIsRushing(false);
+    
+    // UPDATED: Trigger rush mode after 1.5 seconds
+    rushTimerRef.current = setTimeout(() => {
+      const rushMessages = ["快一點！", "在拖什麼！", "後面排很長！", "是不想下班？", "不要發呆！", "你是想吃丙？"];
+      setRushText(rushMessages[Math.floor(Math.random() * rushMessages.length)]);
+      setIsRushing(true);
+    }, 1500); 
+  };
+
   const nextApplicant = (currentMode) => {
+    startRushTimer();
+
     const rand = Math.random();
     let type = 'good';
     let visual = '👤';
@@ -227,6 +277,9 @@ const Game = () => {
   const handleDecision = (approve) => {
     if (!currentApplicant) return;
 
+    setIsRushing(false);
+    if (rushTimerRef.current) clearTimeout(rushTimerRef.current);
+
     let newFeedback = '';
     let anim = 'normal';
     
@@ -238,12 +291,18 @@ const Game = () => {
       setCitizens(prev => {
         const newArr = [...prev];
         newArr.push({ type: currentApplicant.type, id: currentApplicant.id, visual: currentApplicant.visual });
+        
+        // --- LOGIC: Talent Dividend vs Crowding ---
         if (newArr.length > 12) {
           const removed = newArr.shift(); 
           if (removed.type === 'local') {
-            setLocalsDisplaced(d => d + 1);
-            newFeedback = '排擠效應！原本的國民被擠出去了！';
-            anim = 'panic';
+            if (currentApplicant.type === 'good') {
+                newFeedback = '人才！是優秀人才！';
+            } else {
+                setLocalsDisplaced(d => d + 1);
+                newFeedback = '超載！空間不足被排擠！';
+                anim = 'panic';
+            }
           }
         }
         return newArr;
@@ -253,17 +312,17 @@ const Game = () => {
         newScore -= 20;
         setSpiesIn(s => s + 1);
         newSpiesIn += 1;
-        if (!newFeedback) newFeedback = '糟糕！放入了間諜！';
+        if (!newFeedback) newFeedback = '糟糕！是間諜！！';
         anim = 'dead';
       } else if (currentApplicant.type === 'resource_heavy') {
         newResources -= 15;
-        if (!newFeedback) newFeedback = '社福資源大幅消耗...';
+        if (!newFeedback) newFeedback = '蹭飯仔+1 要被提款了 QQ';
         anim = 'angry';
       } else {
          if (newScore < 90) {
             newScore += 1;
          }
-         newResources -= 2; 
+         newResources = Math.min(100, newResources + 5); 
       }
     } else {
       if (currentApplicant.type === 'good') {
@@ -308,10 +367,22 @@ const Game = () => {
       const timer = setInterval(() => setTimeLeft(t => t - 1), 1000);
       return () => clearInterval(timer);
     } else if (timeLeft === 0 && phase === 'game') {
+      if (processedCount < 5) {
+        setGameOverReason("行政效率過低：因處理案件過少，被判定不適任而免職。");
+      }
+      
       setPhase('result');
       setTimeout(() => setIsResultInteractive(true), 1000);
+      setIsRushing(false);
+      if (rushTimerRef.current) clearTimeout(rushTimerRef.current);
     }
-  }, [timeLeft, phase]);
+  }, [timeLeft, phase, processedCount]);
+
+  useEffect(() => {
+    return () => {
+      if (rushTimerRef.current) clearTimeout(rushTimerRef.current);
+    };
+  }, []);
 
   const Classroom = () => {
     const isFull = citizens.length >= 12;
@@ -320,11 +391,11 @@ const Game = () => {
         ${isFull ? 'border-4 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.6)]' : 'border-4 border-amber-800'}`}>
         
         <div className="absolute top-0 left-2 text-xs font-bold px-2 rounded-b bg-amber-200 text-amber-900 z-10">
-          社會資源池 (班級教室)
+          社會資源池 (你的生活空間)
         </div>
         {isFull && (
           <div className="absolute top-1 right-1 bg-red-600 text-white text-xs px-2 py-1 rounded-full animate-pulse z-10 flex items-center gap-1 shadow-sm">
-            <AlertCircle size={10} /> 好多人 QQ
+            <AlertCircle size={10} /> 好擠QQ
           </div>
         )}
         
@@ -371,7 +442,7 @@ const Game = () => {
             <span className="font-bold text-red-600">{spiesIn} 人</span>
           </div>
           <div className="flex justify-between items-center border-b pb-1">
-            <span className="text-sm">📉 國民被排擠</span>
+            <span className="text-sm">📉 設施超載數</span>
             <span className="font-bold text-orange-600">{localsDisplaced} 人</span>
           </div>
 
@@ -407,13 +478,13 @@ const Game = () => {
           <div className="bg-slate-100 p-3 rounded text-sm leading-relaxed text-slate-700 mt-2">
             <strong>注意到了嗎？</strong><br/>
             {gameOverReason ? 
-               "這就是底線。國家安全與社會資源一旦崩潰，就沒有重來的機會了。這就是為什麼審查制度需要如此謹慎的原因。" :
+               "這就是底線。審查制度不僅要擋壞人，還必須具備足夠的行政效率來維持社會運作。" :
                (mode === '4yr' ? (
                  spiesIn > 0 ? "門戶洞開！好人跟壞人的資料寫得太像了，時間這麼趕根本分不出來！" :
-                 localsDisplaced > 2 ? "為了求快，結果把原本的國民都擠出去了（鳩佔鵲巢）。" :
+                 localsDisplaced > 2 ? "好的移民能貢獻資源（看到分數增加嗎？），但因為審核太快、設施建設來不及跟上，反而造成了擁擠（超載）。" :
                  "運氣好守住了，但這種高風險賭博，現實中玩不起。"
               ) : (
-                 "雖然慢，但因為時間充裕，系統能查出偽裝成好人的間諜（看到那些紅色標記了嗎？）。這就是「時間」帶來的安全感。"
+                 "雖然慢，但因為時間充裕，我們能準確篩選出願意貢獻的好公民，同時擋下偽裝的間諜。這就是「時間」帶來的安全感。"
               ))
             }
           </div>
@@ -446,16 +517,16 @@ const Game = () => {
           <button onClick={() => startGame('6yr')} className="p-3 bg-blue-100 border-2 border-blue-800 rounded-lg flex items-center gap-3 active:scale-95 transition-transform text-left">
             <div className="bg-blue-600 text-white p-2 rounded"><Clock size={20}/></div>
             <div>
-              <div className="font-bold text-blue-900">6 年申請制</div>
-              <div className="text-xs text-blue-700"></div>
+              <div className="font-bold text-blue-900">現行 6 年制</div>
+              <div className="text-xs text-blue-700"> </div>
             </div>
           </button>
           
           <button onClick={() => startGame('4yr')} className="p-3 bg-red-100 border-2 border-red-800 rounded-lg flex items-center gap-3 active:scale-95 transition-transform text-left">
             <div className="bg-red-600 text-white p-2 rounded"><Zap size={20}/></div>
             <div>
-              <div className="font-bold text-red-900"> 4 年申請制</div>
-              <div className="text-xs text-red-700"></div>
+              <div className="font-bold text-red-900">挑戰 4 年制</div>
+              <div className="text-xs text-red-700"> </div>
             </div>
           </button>
         </div>
@@ -464,14 +535,34 @@ const Game = () => {
         <div className="mt-6 text-center">
            <div className="text-[10px] text-slate-400 font-mono tracking-wider uppercase border-t border-slate-200 pt-2 inline-block">
              How's Safety Homeland Project
+             </div>
+           
+           {/* 這就是那個黃色按鈕！ */}
+           <div>
+             <a 
+               href="https://Ko-fi.com/howsproject" 
+               target="_blank"
+               rel="noopener noreferrer"
+               className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-yellow-900 rounded-full text-xs font-bold transition-transform hover:scale-105 shadow-sm no-underline"
+             >
+               <Coffee size={14} />
+               請我喝杯啤酒吧~
+             </a>
            </div>
         </div>
+        {/* --- 結束 --- */}
+
       </div>
     </div>
   );
 
   const GameScreen = () => (
-    <div className="flex flex-col h-full max-w-lg mx-auto relative">
+    <div className={`flex flex-col h-full max-w-lg mx-auto relative transition-colors duration-200 ${isRushing ? 'bg-red-500/20' : ''}`}>
+      {/* Rush Overlay Border - UPDATED: Faster Pulse */}
+      {isRushing && (
+        <div className="absolute inset-0 border-8 border-red-500 z-50 pointer-events-none animate-pulse" style={{ animationDuration: '0.5s' }}></div>
+      )}
+
       <div className="sticky top-0 left-0 right-0 flex justify-between items-center bg-slate-800 text-white p-3 rounded-b-xl shadow-lg z-30 shrink-0">
         <button 
           onClick={handleRestart}
@@ -496,8 +587,11 @@ const Game = () => {
         <div className="flex flex-col items-center w-1/3">
            <span className="text-[10px] text-slate-400">社福資源</span>
            <div className="flex items-center gap-1">
-             <Activity size={14} className={resources <= 20 ? 'text-red-500 animate-pulse' : 'text-green-400'} />
-             <span className="font-mono font-bold text-sm">{resources}</span>
+             <Activity size={14} className={resources <= 20 ? 'text-red-500 animate-pulse' : (resources >= 90 ? 'text-green-300' : 'text-green-400')} />
+             <span className="font-mono font-bold text-sm flex gap-1 items-center">
+               {resources}
+               {resources < 100 && <TrendingUp size={10} className="text-green-500" />}
+             </span>
            </div>
         </div>
       </div>
@@ -506,13 +600,15 @@ const Game = () => {
         
         <div className="w-full h-48 relative shrink-0 mb-4 flex justify-center items-start">
              <div className="absolute top-0 opacity-90 scale-90 origin-top z-0">
-                <AnimeCivilServant mood={getDynamicMood()} />
+                <AnimeCivilServant mood={getDynamicMood()} speak={isRushing ? rushText : null} />
              </div>
         </div>
 
         {feedback && (
           <div className="absolute top-20 w-full text-center z-50 pointer-events-none px-4">
-             <span className="bg-red-600 text-white px-4 py-2 rounded-xl font-bold shadow-xl animate-bounce inline-block border-2 border-white text-base">
+             <span className={`px-4 py-2 rounded-xl font-bold shadow-xl animate-bounce inline-block border-2 border-white text-base
+                ${feedback.includes('資源挹注') ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}
+             `}>
               {feedback}
              </span>
           </div>
@@ -569,9 +665,9 @@ const Game = () => {
   );
 
   return (
-    <div className="fixed inset-0 w-full h-[100dvh] bg-slate-300 font-sans select-none overflow-hidden">
-      <div className="max-w-md mx-auto h-full bg-slate-50 shadow-2xl relative flex flex-col">
-        <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#475569 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
+    <div className="fixed inset-0 w-full h-[100dvh] bg-gradient-to-br from-orange-200 via-rose-200 to-sky-200 font-sans select-none overflow-hidden">
+      <div className="max-w-md mx-auto h-full bg-white/70 backdrop-blur-sm shadow-2xl relative flex flex-col">
+        <div className="absolute inset-0 opacity-15 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#f97316 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
         {phase === 'menu' && <IntroScreen />}
         {phase === 'game' && <GameScreen />}
         {phase === 'result' && <ResultScreen />}
