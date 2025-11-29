@@ -588,11 +588,11 @@ const Game = () => {
         newScore -= 20;
         setSpiesIn(s => s + 1);
         newSpiesIn += 1;
-        if (!newFeedback) newFeedback = '糟糕！放入了間諜！(隱藏風險)';
+        if (!newFeedback) newFeedback = '哎呀~ 是間諜...';
         anim = 'dead';
       } else if (currentApplicant.type === 'resource_heavy') {
         newResources -= 15;
-        if (!newFeedback) newFeedback = '社福資源大幅消耗...';
+        if (!newFeedback) newFeedback = '蹭飯+1，大家又要當乾爹惹';
         anim = 'angry';
       } else {
          if (newScore < 90) {
